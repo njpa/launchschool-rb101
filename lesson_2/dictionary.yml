@@ -1,0 +1,12 @@
+en:
+  welcome: "Welcome to *** CALCULATOR ***"
+  ask_name: "What's your name?"
+  valid_name: "Please enter a valid name!"
+  ask_first_number: "Please enter the first number:"
+  valid_number: "Please enter a valid number!"
+es:
+  welcome: "Bienvenido a *** LA CALCULADORA ***"
+  ask_name: "Cóom te llamas?"
+  valid_name: "Por favor entra un número válido!"
+  ask_first_number: "Por favor entra el primer número: "
+  valid_number: "Port favor entra un número válido!"
