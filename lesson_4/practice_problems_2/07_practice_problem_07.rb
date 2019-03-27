@@ -1,13 +1,18 @@
-# Amend this array so that the names are all shortened to just the first
-# three characters:
+# Create a hash that expresses the frequency with which each letter occurs in
+# this string:
 
-flintstones = %w(Fred Barney Wilma Betty BamBam Pebbles)
+statement = "The Flintstones Rock"
 
-# Approach 1
-# ----------
-flintstones.each do |member|
-  member = member[0,2]
+# ex:
+
+# { "F"=>1, "R"=>1, "T"=>1, "c"=>1, "e"=>2, ... }
+
+freq = {}
+
+statement.chars.each do |char|
+  unless char == " "
+    freq[char] == nil ? freq[char] = 1 : freq[char] += 1
+  end
 end
-p flintstones
 
-
+p freq
