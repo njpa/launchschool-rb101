@@ -100,4 +100,3 @@ p size_refactor('Four score and seven.') == { 3 => 1, 4 => 1, 5 => 1, 6 => 1 }
 p size_refactor('Hey diddle diddle, the cat and the fiddle!') == { 3 => 5, 6 => 1, 7 => 2 }
 p size_refactor("What's up doc?") == { 6 => 1, 2 => 1, 4 => 1 }
 p size_refactor('') == {}
-
