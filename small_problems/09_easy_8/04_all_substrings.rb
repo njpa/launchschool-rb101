@@ -102,18 +102,14 @@ def substrings_at(str)
 end
 
 def substrings_corr(string)
-  substrings = []
-  count = 0
-  size = string.size
+  res = []
 
-  while count <= size
-    str = string[count..size]
-    strings = substrings_at(str)
-    strings.each { |str| substrings.push(str) }
-    count += 1
+  0.upto(string.size) do |count|
+    str = string[count..(string.size)]
+    substrings_at(str).each { |str| res.push(str) }
   end
 
-  substrings
+  res
 end
 
 puts '-- Correction'
