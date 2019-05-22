@@ -30,16 +30,12 @@ end
 def game_on(state)
   last_winner = new_game(state)
 
-  case last_winner
-  when :player
-    display(state)
-    puts "Nice!"
+  display(state)
 
-  when :computer
-    display(state)
-    puts "Good try! Better luck next time."
-  else
-    puts "Looks like it's a tie!"
+  case last_winner
+  when :player   then puts "Nice!"
+  when :computer then puts "Good try! Better luck next time."
+  else                puts "Looks like it's a tie!"
   end
 
   if state[:score][:player] >= GAMES_FOR_WIN ||
@@ -55,11 +51,9 @@ def new_game(state)
   second_player = state[:last_winner] == :player ? :computer : :player
 
   loop do
-    game_over = make_play(state, state[:last_winner])
-    break if game_over
+    break if end_play?(state, state[:last_winner])
 
-    game_over = make_play(state, second_player)
-    break if game_over
+    break if end_play?(state, second_player)
   end
 
   if win?(state[:board], COMPUTER_MARKER)
@@ -73,7 +67,7 @@ def new_game(state)
   end
 end
 
-def make_play(state, current_turn)
+def end_play?(state, current_turn)
   game_over = false
   display(state)
   if current_turn == :player
@@ -148,12 +142,12 @@ def board_table(brd)
 end
 
 def score_table(scr)
-  "┌-----------------┐\n" \
-  "| MRKR     SCORE      |\n"\
-  "├------┬-----------┤\n" \
-  "| [#{PLAYER_MARKER}] | You:      #{scr[:player]} |\n"\
-  "| [#{COMPUTER_MARKER}] | Computer: #{scr[:computer]} |\n"\
-  "└------┴-----------┘\n"
+  "┌------┬-------┬-----┬-----┐\n" \
+  "|      | SCORE | MRK | CUR |\n"\
+  "├------+-------+-----+-----┤\n" \
+  "| You  |   #{scr[:player]}   | [#{PLAYER_MARKER}] |     |\n"\
+  "| Comp |   #{scr[:computer]}   | [#{COMPUTER_MARKER}] |     |\n"\
+  "└------┴-------┴-----┴-----┘\n"
 end
 
 def output_computer_thinking
