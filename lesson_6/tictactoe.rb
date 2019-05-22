@@ -13,83 +13,78 @@ GAMES_FOR_WIN = 3
 def main
   state = {
     score: { player: 0, computer: 0 },
-    board: {},
-    last_winner: :player
-    }
-
-  score = { player: 0, computer: 0 }
-  last_winner = :player
+    board: { 1 => ' ', 2 => ' ', 3 => ' ', 4 => ' ',
+             5 => ' ', 6 => ' ', 7 => ' ', 8 => ' ' },
+    last_winner: :computer,
+    player_marker: 'x',
+    computer_marker: 'o'
+  }
 
   loop do
-    board = new_board
-    last_winner = play_game(board, last_winner, score)
-
-    case last_winner
-    when :player
-      score[:player] += 1
-      display(board, score)
-      puts "Nice!"
-
-    when :computer
-      score[:computer] += 1
-      display(board, score)
-      puts "Good try! Better luck next time."
-    else
-      puts "Looks like it's a tie!"
-    end
-
-    break if score[:player] >= GAMES_FOR_WIN ||
-             score[:computer] >= GAMES_FOR_WIN
-    break if prompt_again == 'n'
+    break unless game_on(state)
   end
 
   puts "Thanks for playing!"
 end
 
-def prompt_again
-  puts "Do you want to play again (y/n)?: "
-  again = ''
+def game_on(state)
+  last_winner = new_game(state)
 
-  loop do
-    again = gets.chomp
-    break if %w(y n).include? again
+  case last_winner
+  when :player
+    display(state)
+    puts "Nice!"
 
-    puts "Please enter 'y' or 'n': "
+  when :computer
+    display(state)
+    puts "Good try! Better luck next time."
+  else
+    puts "Looks like it's a tie!"
   end
 
-  again
+  if state[:score][:player] >= GAMES_FOR_WIN ||
+     state[:score][:computer] >= GAMES_FOR_WIN
+    false
+  else
+    !(prompt_again == 'n')
+  end
 end
 
-def play_game(board, first_player, score)
-  second_player = first_player == :player ? :computer : :player
+def new_game(state)
+  clear_board(state[:board])
+  second_player = state[:last_winner] == :player ? :computer : :player
 
   loop do
-    game_over = make_play(board, first_player, score)
+    game_over = make_play(state, state[:last_winner])
     break if game_over
 
-    game_over = make_play(board, second_player, score)
+    game_over = make_play(state, second_player)
     break if game_over
   end
 
-  if win?(board, COMPUTER_MARKER)
+  if win?(state[:board], COMPUTER_MARKER)
+    state[:last_winner] = :computer
+    state[:score][:computer] += 1
     :computer
-  elsif win?(board, PLAYER_MARKER)
+  elsif win?(state[:board], PLAYER_MARKER)
+    state[:last_winner] = :player
+    state[:score][:player] += 1
     :player
   end
 end
 
-def make_play(board, turn, score)
+def make_play(state, current_turn)
   game_over = false
-  display(board, score)
-  if turn == :player
-    player_places_piece!(board)
-    game_over = true if win?(board, PLAYER_MARKER)
+  display(state)
+  if current_turn == :player
+    player_places_piece!(state[:board])
+    game_over = true if win?(state[:board], PLAYER_MARKER)
   else
-    computer_places_piece!(board)
-    game_over = true if win?(board, COMPUTER_MARKER)
+    computer_places_piece!(state[:board])
+    game_over = true if win?(state[:board], COMPUTER_MARKER)
   end
-  game_over = true if board_full?(board)
-  display(board, score)
+  game_over = true if board_full?(state[:board])
+  display(state)
   game_over
 end
 
@@ -116,12 +111,26 @@ def computer_places_piece!(board)
   board
 end
 
-def display(board, score)
+def display(state)
   system 'clear'
-  puts score_table(score).yellow
+  puts score_table(state[:score]).yellow
   puts ''
-  puts board_table(board)
+  puts board_table(state[:board])
   puts ''
+end
+
+def prompt_again
+  puts "Do you want to play again (y/n)?: "
+  again = ''
+
+  loop do
+    again = gets.chomp
+    break if %w(y n).include? again
+
+    puts "Please enter 'y' or 'n': "
+  end
+
+  again
 end
 
 def board_table(brd)
@@ -140,25 +149,23 @@ end
 
 def score_table(scr)
   "┌-----------------┐\n" \
-  "|      SCORE      |\n"\
-  "├-----------------┤\n" \
-  "| [#{PLAYER_MARKER}] You:      #{scr[:player]} |\n"\
-  "| [#{COMPUTER_MARKER}] Computer: #{scr[:computer]} |\n"\
-  "└-----------------┘\n"
+  "| MRKR     SCORE      |\n"\
+  "├------┬-----------┤\n" \
+  "| [#{PLAYER_MARKER}] | You:      #{scr[:player]} |\n"\
+  "| [#{COMPUTER_MARKER}] | Computer: #{scr[:computer]} |\n"\
+  "└------┴-----------┘\n"
 end
 
 def output_computer_thinking
   print "Computer is thinking".cyan
-  2.times {
+  2.times do
     sleep 1.1
     print ".".cyan
-  }
+  end
 end
 
-def new_board
-  board = {}
+def clear_board(board)
   (1..9).each { |key| board[key] = INITIAL_MARKER }
-  board
 end
 
 def board_full?(board)
