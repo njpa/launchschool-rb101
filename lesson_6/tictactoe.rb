@@ -126,14 +126,10 @@ def best_move(empty_squares, board)
     possible_wins[0]
   elsif !blocks.empty?
     blocks[0]
-  elsif win_starts.include?(5)
-    5
   elsif !win_starts.empty?
-    win_starts[0]
-  elsif empty_squares.include?(5)
-    5
+    win_starts.include?(5) ? 5 : win_starts[0]
   else
-    empty_squares.sample
+    empty_squares.include?(5) ? 5 : empty_squares.sample
   end
 end
 
