@@ -29,11 +29,9 @@ def main
 end
 
 def game_on(state)
-  last_winner = new_game(state)
+  winner = play_game(state)
 
-  display(state)
-
-  case last_winner
+  case winner
   when :player   then puts "Nice!"
   when :computer then puts "Good try! Better luck next time."
   else                puts "Looks like it's a tie!"
@@ -47,46 +45,45 @@ def game_on(state)
   end
 end
 
-def new_game(state)
-  clear_board(state[:board])
+def play_game(state)
+  clear_board!(state[:board])
 
-  second_player = state[:last_winner] == :player ? :computer : :player
+  winner = nil
 
   loop do
-    break if end_play?(state, state[:last_winner])
+    display(state)
+    winner = play_turn!(state)
+    break if winner || board_full?(state[:board])
 
-    break if end_play?(state, second_player)
+    alternate_player!(state)
   end
 
-  if win?(state[:board], COMPUTER_MARKER)
-    state[:last_winner] = :computer
-    increase_score(state[:score], :computer)
-    :computer
-  elsif win?(state[:board], PLAYER_MARKER)
-    state[:last_winner] = :player
-    increase_score(state[:score], :player)
-    :player
-  end
+  winner
 end
 
-def increase_score(score, player)
+def play_turn!(state)
+  place_piece!(state[:board], state[:current_player])
+
+  winner = nil
+
+  if a_winner?(state[:board])
+    increase_score!(state[:score], state[:current_player])
+    state[:last_winner] = state[:current_player]
+    a_win = state[:current_player]
+  end
+
+  display(state)
+
+  a_win
+end
+
+def alternate_player!(state)
+  state[:current_player] =
+    state[:current_player] == :player ? :computer : :player
+end
+
+def increase_score!(score, player)
   score[player] += 1
-end
-
-def end_play?(state, current_turn)
-  game_over = false
-  display(state)
-  if current_turn == :player
-    player_places_piece!(state[:board])
-    game_over = true if win?(state[:board], PLAYER_MARKER)
-  else
-    output_computer_thinking
-    computer_places_piece!(state[:board])
-    game_over = true if win?(state[:board], COMPUTER_MARKER)
-  end
-  display(state)
-  game_over = true if board_full?(state[:board])
-  game_over
 end
 
 def player_places_piece!(board)
@@ -104,29 +101,40 @@ def player_places_piece!(board)
   board[choice] = PLAYER_MARKER
 end
 
+def place_piece!(board, player)
+  case player
+  when :player
+    player_places_piece!(board)
+  else
+    output_computer_thinking
+    computer_places_piece!(board) if player == :computer
+  end
+end
+
 def computer_places_piece!(board)
   empty = empty_squares(board)
+  best_square = best_move(empty, board)
+  board[best_square] = COMPUTER_MARKER
+end
 
-  wins = empty.select { |square| can_win?(square, board) }
-  blocks = empty.select { |square| can_block?(square, board) }
-  win_starts = empty.select { |square| can_start_win?(square, board) }
+def best_move(empty_squares, board)
+  wins = empty_squares.select { |square| can_win?(square, board) }
+  blocks = empty_squares.select { |square| can_block?(square, board) }
+  win_starts = empty_squares.select { |square| can_start_win?(square, board) }
 
-  choice =
-    if !wins.empty?
-      wins.sample
-    elsif !blocks.empty?
-      blocks.sample
-    elsif !win_starts.empty? && win_starts.include?(5)
-      5
-    elsif !win_starts.empty?
-      win_starts.sample
-    elsif empty.include?(5)
-      5
-    else
-      empty.sample
-    end
-
-  board[choice] = COMPUTER_MARKER
+  if !wins.empty?
+    wins[0]
+  elsif !blocks.empty?
+    blocks[0]
+  elsif win_starts.include?(5)
+    5
+  elsif !win_starts.empty?
+    win_starts[0]
+  elsif empty_squares.include?(5)
+    5
+  else
+    empty_squares.sample
+  end
 end
 
 def can_start_win?(square, board)
@@ -159,23 +167,28 @@ def can_block?(square, board)
   !blocks.empty?
 end
 
-def win?(board, player)
-  win = WINNING_LINES.select do |line|
-    (line - board.keys.select { |pos| board[pos] == player }) == []
+def a_winner?(board)
+  winner = false
+  [COMPUTER_MARKER, PLAYER_MARKER].each do |player|
+    WINNING_LINES.select do |line|
+      if (line - board.keys.select { |pos| board[pos] == player }) == []
+        winner = true
+      end
+    end
   end
-  !win.empty?
+  winner
+end
+
+def board_full?(board)
+  empty_squares(board).empty?
 end
 
 def empty_squares(board)
   board.keys.select { |pos| board[pos] == INITIAL_MARKER }
 end
 
-def clear_board(board)
+def clear_board!(board)
   (1..9).each { |key| board[key] = INITIAL_MARKER }
-end
-
-def board_full?(board)
-  empty_squares(board).empty?
 end
 
 def display(state)
@@ -223,14 +236,6 @@ def score_table(scr)
   "└------┴-------┴-----┴-----┘\n"
 end
 
-def output_computer_thinking
-  print "Computer is thinking".cyan
-  2.times do
-    sleep 1.1
-    print ".".cyan
-  end
-end
-
 def joinor(elements, separator = ', ', conj = 'or')
   case elements.size
   when 1
@@ -240,6 +245,14 @@ def joinor(elements, separator = ', ', conj = 'or')
   else
     init = elements[0...(elements.size - 1)].join(separator)
     "#{init}#{separator}#{conj} #{elements.last}"
+  end
+end
+
+def output_computer_thinking
+  print "Computer is thinking".cyan
+  4.times do
+    sleep 0.5
+    print ".".cyan
   end
 end
 
