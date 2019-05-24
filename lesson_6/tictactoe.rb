@@ -64,7 +64,7 @@ end
 def play_turn!(state)
   place_piece!(state[:board], state[:current_player])
 
-  winner = nil
+  a_win = nil
 
   if a_winner?(state[:board])
     increase_score!(state[:score], state[:current_player])
@@ -118,12 +118,12 @@ def computer_places_piece!(board)
 end
 
 def best_move(empty_squares, board)
-  wins = empty_squares.select { |square| can_win?(square, board) }
+  possible_wins = possible_wins(empty_squares, board)
   blocks = empty_squares.select { |square| can_block?(square, board) }
   win_starts = empty_squares.select { |square| can_start_win?(square, board) }
 
-  if !wins.empty?
-    wins[0]
+  if !possible_wins.empty?
+    possible_wins[0]
   elsif !blocks.empty?
     blocks[0]
   elsif win_starts.include?(5)
@@ -147,14 +147,16 @@ def can_start_win?(square, board)
   !wins.empty?
 end
 
-def can_win?(square, board)
-  wins = WINNING_LINES.select do |line|
-    other_squares = line - [square]
-    line.include?(square) &&
-      board[other_squares[0]] == COMPUTER_MARKER &&
-      board[other_squares[1]] == COMPUTER_MARKER
+def possible_wins(empty_squares, board)
+  empty_squares.reject do |square|
+    wins = WINNING_LINES.select do |line|
+      other_squares = line - [square]
+      line.include?(square) &&
+        board[other_squares[0]] == COMPUTER_MARKER &&
+        board[other_squares[1]] == COMPUTER_MARKER
+    end
+    wins.empty?
   end
-  !wins.empty?
 end
 
 def can_block?(square, board)
