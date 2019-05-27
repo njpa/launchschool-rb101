@@ -13,22 +13,22 @@ GAMES_FOR_WIN = 5
 def main
   state = {
     score: { player: 0, computer: 0 },
-    board: { 1 => ' ', 2 => ' ', 3 => ' ', 4 => ' ',
-             5 => ' ', 6 => ' ', 7 => ' ', 8 => ' ' },
+    board: { 1 => INITIAL_MARKER, 2 => INITIAL_MARKER,
+             3 => INITIAL_MARKER, 4 => INITIAL_MARKER,
+             5 => INITIAL_MARKER, 6 => INITIAL_MARKER,
+             7 => INITIAL_MARKER, 8 => INITIAL_MARKER },
     last_winner: :player,
-    current_player: :player,
-    player_marker: 'x',
-    computer_marker: 'o'
+    current_player: :player
   }
 
   loop do
-    break unless game_on(state)
+    break unless game_on?(state)
   end
 
   puts "Thanks for playing!"
 end
 
-def game_on(state)
+def game_on?(state)
   winner = play_game(state)
 
   case winner
@@ -95,7 +95,7 @@ def player_places_piece!(board)
 
     break if empty_squares(board).include? choice
 
-    puts "warning: Please select a valid square!".red
+    puts "Please select a valid square!".red
   end
 
   board[choice] = PLAYER_MARKER
@@ -120,25 +120,35 @@ end
 def best_move(empty_squares, board)
   possible_wins = possible_wins(empty_squares, board)
   blocks = empty_squares.select { |square| can_block?(square, board) }
-  win_starts = empty_squares.select { |square| can_start_win?(square, board) }
+  win_starts = empty_squares.select do |square|
+    can_start_win?(square, board, 3)
+  end
 
   if !possible_wins.empty?
-    possible_wins[0]
+    possible_wins.sample
   elsif !blocks.empty?
-    blocks[0]
+    blocks.sample
   elsif !win_starts.empty?
-    win_starts.include?(5) ? 5 : win_starts[0]
+    win_starts.include?(5) ? 5 : win_starts.sample
   else
     empty_squares.include?(5) ? 5 : empty_squares.sample
   end
 end
 
-def can_start_win?(square, board)
+def can_start_win?(square, board, board_size)
   wins = WINNING_LINES.select do |line|
     other_squares = line - [square]
+
+    filled_computer = (0...board_size - 1).count do |ind|
+      board[other_squares[ind]] == COMPUTER_MARKER
+    end
+
+    filled_player = (0...board_size - 1).count do |ind|
+      board[other_squares[ind]] == PLAYER_MARKER
+    end
+
     line.include?(square) &&
-      (board[other_squares[0]] == COMPUTER_MARKER ||
-      board[other_squares[1]] == COMPUTER_MARKER)
+      (filled_computer == (board_size - 2) && filled_player == 0)
   end
   !wins.empty?
 end
@@ -155,12 +165,13 @@ def possible_wins(empty_squares, board)
   end
 end
 
-def can_block?(square, board)
+def can_block?(square, board, board_size = 3)
   blocks = WINNING_LINES.select do |line|
     other_squares = line - [square]
-    line.include?(square) &&
-      board[other_squares[0]] == PLAYER_MARKER &&
-      board[other_squares[1]] == PLAYER_MARKER
+    filled = (0...board_size - 1).all? do |index|
+      board[other_squares[index]] == PLAYER_MARKER
+    end
+    line.include?(square) && filled
   end
   !blocks.empty?
 end
@@ -191,7 +202,7 @@ end
 
 def display(state)
   system 'clear'
-  puts score_table(state[:score]).yellow
+  puts score_table(state[:score], state[:current_player]).yellow
   puts ''
   puts board_table(state[:board])
   puts ''
@@ -225,13 +236,15 @@ def board_table(brd)
   "     |     |     \n"
 end
 
-def score_table(scr)
-  "┌------┬-------┬-----┬-----┐\n" \
-  "|      | SCORE | MRK | CUR |\n"\
-  "├------+-------+-----+-----┤\n" \
-  "| You  |   #{scr[:player]}   |  #{PLAYER_MARKER}  |     |\n"\
-  "| Comp |   #{scr[:computer]}   |  #{COMPUTER_MARKER}  |     |\n"\
-  "└------┴-------┴-----┴-----┘\n"
+def score_table(scr, current_player)
+  "┌------┬-------┬--------┬---------┐\n" \
+  "|      | SCORE | MARKER | CURRENT |\n"\
+  "├------+-------+--------+---------┤\n" \
+  "| You  |   #{scr[:player]}   |   #{PLAYER_MARKER}    |" \
+  "    #{current_player == :player ? '*' : ' '}    |\n"\
+  "| Me   |   #{scr[:computer]}   |   #{COMPUTER_MARKER}    |" \
+  "    #{current_player == :computer ? '*' : ' '}    |\n"\
+  "└------┴-------┴--------┴---------┘\n"
 end
 
 def joinor(elements, separator = ', ', conj = 'or')
@@ -247,7 +260,7 @@ def joinor(elements, separator = ', ', conj = 'or')
 end
 
 def output_computer_thinking
-  print "Computer is thinking".cyan
+  print "I'm thinking".cyan
   4.times do
     sleep 0.5
     print ".".cyan
