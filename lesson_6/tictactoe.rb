@@ -10,6 +10,27 @@ WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [1, 4, 7],
                  [2, 5, 8], [3, 6, 9], [1, 5, 9], [3, 5, 7]]
 GAMES_FOR_WIN = 5
 
+=begin
+changes needed for multiboard games
+- WINNING_LINES needs to be updated to WINNING_LINES_3X3, and updated throughout
+- WINNING_LINES_5X5 needs to be created
+- write `prompt_board_size`
+- `game_on?` calls `prompt_board_size`
+- add `board_size` to `state`
+- `board` is empty `{}` in `state`
+- update `clear_board` to `create_board` and add `size` argument
+- write `board_line_horizontal`, takes `size` as argument
+- write `board_line_vertical`, takes `size` as argument
+- `board_table` needs to delegate squares out to `board_line_horizontal`
+- `board_table` needs to delegate squares out to `board_line_vertical`
+- `possible_wins` takes `board_size` as argument
+- `possible_wins` uses a `count` with `board_size` to determine possible win
+- `can_block?` takes `board_size` as argument
+- `can_block?` uses a `count` with `board_size` to determine possible block
+- `best_move` defaults to `5` if board_size is `3`,
+  defaults to `13` if `board_size` is `5`
+=end
+
 def main
   state = {
     score: { player: 0, computer: 0 },
@@ -86,6 +107,16 @@ def increase_score!(score, player)
   score[player] += 1
 end
 
+def place_piece!(board, player)
+  case player
+  when :player
+    player_places_piece!(board)
+  else
+    output_computer_thinking
+    computer_places_piece!(board) if player == :computer
+  end
+end
+
 def player_places_piece!(board)
   choice = nil
 
@@ -101,16 +132,6 @@ def player_places_piece!(board)
   board[choice] = PLAYER_MARKER
 end
 
-def place_piece!(board, player)
-  case player
-  when :player
-    player_places_piece!(board)
-  else
-    output_computer_thinking
-    computer_places_piece!(board) if player == :computer
-  end
-end
-
 def computer_places_piece!(board)
   empty = empty_squares(board)
   best_square = best_move(empty, board)
@@ -119,38 +140,20 @@ end
 
 def best_move(empty_squares, board)
   possible_wins = possible_wins(empty_squares, board)
-  blocks = empty_squares.select { |square| can_block?(square, board) }
+  possible_blocks = empty_squares.select { |square| can_block?(square, board) }
   win_starts = empty_squares.select do |square|
     can_start_win?(square, board, 3)
   end
 
   if !possible_wins.empty?
     possible_wins.sample
-  elsif !blocks.empty?
-    blocks.sample
+  elsif !possible_blocks.empty?
+    possible_blocks.sample
   elsif !win_starts.empty?
     win_starts.include?(5) ? 5 : win_starts.sample
   else
     empty_squares.include?(5) ? 5 : empty_squares.sample
   end
-end
-
-def can_start_win?(square, board, board_size)
-  wins = WINNING_LINES.select do |line|
-    other_squares = line - [square]
-
-    filled_computer = (0...board_size - 1).count do |ind|
-      board[other_squares[ind]] == COMPUTER_MARKER
-    end
-
-    filled_player = (0...board_size - 1).count do |ind|
-      board[other_squares[ind]] == PLAYER_MARKER
-    end
-
-    line.include?(square) &&
-      (filled_computer == (board_size - 2) && filled_player == 0)
-  end
-  !wins.empty?
 end
 
 def possible_wins(empty_squares, board)
@@ -174,6 +177,24 @@ def can_block?(square, board, board_size = 3)
     line.include?(square) && filled
   end
   !blocks.empty?
+end
+
+def can_start_win?(square, board, board_size)
+  wins = WINNING_LINES.select do |line|
+    other_squares = line - [square]
+
+    filled_computer = (0...board_size - 1).count do |ind|
+      board[other_squares[ind]] == COMPUTER_MARKER
+    end
+
+    filled_player = (0...board_size - 1).count do |ind|
+      board[other_squares[ind]] == PLAYER_MARKER
+    end
+
+    line.include?(square) &&
+      (filled_computer == (board_size - 2) && filled_player == 0)
+  end
+  !wins.empty?
 end
 
 def a_winner?(board)
