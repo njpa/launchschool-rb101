@@ -16,11 +16,11 @@ done:
 - `can_block?` uses a `count` with `board_size` to determine possible block
 - WINNING_LINES needs to be updated to WINNING_LINES_3X3, and updated throughout
 - WINNING_LINES_5X5 needs to be created
+- add `board_size` to `state`
 
 pending:
 - write `prompt_board_size`
 - `game_on?` calls `prompt_board_size`
-- add `board_size` to `state`
 - `board` is empty `{}` in `state`
 - update `clear_board` to `create_board` and add `size` argument
 - write `board_line_horizontal`, takes `size` as argument
@@ -145,9 +145,8 @@ end
 
 def best_move(empty_squares, board, board_size, winning_lines)
   possible_wins = possible_wins(empty_squares, board, board_size, winning_lines)
-  possible_blocks = empty_squares.select do |square|
-    can_block?(square, board, board_size, winning_lines)
-  end
+  possible_blocks = possible_blocks(empty_squares, board, board_size,
+                                    winning_lines)
   win_starts = empty_squares.select do |square|
     can_start_win?(square, board, board_size, winning_lines)
   end
@@ -167,36 +166,28 @@ def possible_wins(empty_squares, board, board_size, winning_lines)
   empty_squares.reject do |square|
     wins = winning_lines.select do |line|
       other_squares = line - [square]
-      filled_computer = (0...board_size - 1).count do |ind|
-        board[other_squares[ind]] == COMPUTER_MARKER
-      end
+      filled_computer = filled_in_by(COMPUTER_MARKER, board, board_size,
+                                     other_squares)
       line.include?(square) && filled_computer == (board_size - 1)
     end
     wins.empty?
   end
 end
 
-def can_block?(square, board, board_size, winning_lines)
-  blocks = winning_lines.select do |line|
-    other_squares = line - [square]
-    filled = (0...board_size - 1).all? do |index|
-      board[other_squares[index]] == PLAYER_MARKER
+def possible_blocks(empty_squares, board, board_size, winning_lines)
+  empty_squares.reject do |square|
+    blocks = winning_lines.select do |line|
+      other_squares = line - [square]
+      filled = filled_in_by(PLAYER_MARKER, board, board_size, other_squares)
+      line.include?(square) && filled == (board_size - 1)
     end
-    line.include?(square) && filled
-  end
-  !blocks.empty?
-end
-
-def filled_in_by(player_marker, board, board_size, squares_to_test)
-  (0...board_size - 1).count do |ind|
-    board[squares_to_test[ind]] == player_marker
+    blocks.empty?
   end
 end
 
 def can_start_win?(square, board, board_size, winning_lines)
   wins = winning_lines.select do |line|
     other_squares = line - [square]
-
     filled_computer = filled_in_by(COMPUTER_MARKER, board, board_size,
                                    other_squares)
     filled_player = filled_in_by(PLAYER_MARKER, board, board_size,
@@ -205,6 +196,12 @@ def can_start_win?(square, board, board_size, winning_lines)
       (filled_computer >= (board_size - 2) && filled_player == 0)
   end
   !wins.empty?
+end
+
+def filled_in_by(player_marker, board, board_size, squares_to_test)
+  (0...board_size - 1).count do |ind|
+    board[squares_to_test[ind]] == player_marker
+  end
 end
 
 def a_winner?(board, winning_lines)
@@ -362,4 +359,5 @@ def winning_backward_diagonal(board_size)
 
   backward_diagonal
 end
+
 main
