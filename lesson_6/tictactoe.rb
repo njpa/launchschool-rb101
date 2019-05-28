@@ -6,13 +6,10 @@ require 'colorize'
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
-WINNING_LINES_3X3 = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [1, 4, 7],
-                     [2, 5, 8], [3, 6, 9], [1, 5, 9], [3, 5, 7]]
 GAMES_FOR_WIN = 5
 
 =begin
-done
-====
+done:
 - `possible_wins` takes `board_size` as argument
 - `possible_wins` uses a `count` with `board_size` to determine possible win
 - `can_block?` takes `board_size` as argument
@@ -20,14 +17,7 @@ done
 - WINNING_LINES needs to be updated to WINNING_LINES_3X3, and updated throughout
 - WINNING_LINES_5X5 needs to be created
 
-x x x x x
-x x x x x
-x x x x x
-x x x x x
-x x x x x
-
-needed
-======
+pending:
 - write `prompt_board_size`
 - `game_on?` calls `prompt_board_size`
 - add `board_size` to `state`
@@ -48,7 +38,7 @@ def main
              3 => INITIAL_MARKER, 4 => INITIAL_MARKER,
              5 => INITIAL_MARKER, 6 => INITIAL_MARKER,
              7 => INITIAL_MARKER, 8 => INITIAL_MARKER },
-    winning_lines: WINNING_LINES_3X3,
+    winning_lines: winning_lines(3),
     board_size: 3,
     last_winner: :player,
     current_player: :player
@@ -197,18 +187,20 @@ def can_block?(square, board, board_size, winning_lines)
   !blocks.empty?
 end
 
+def filled_in_by(player_marker, board, board_size, squares_to_test)
+  (0...board_size - 1).count do |ind|
+    board[squares_to_test[ind]] == player_marker
+  end
+end
+
 def can_start_win?(square, board, board_size, winning_lines)
   wins = winning_lines.select do |line|
     other_squares = line - [square]
 
-    filled_computer = (0...board_size - 1).count do |ind|
-      board[other_squares[ind]] == COMPUTER_MARKER
-    end
-
-    filled_player = (0...board_size - 1).count do |ind|
-      board[other_squares[ind]] == PLAYER_MARKER
-    end
-
+    filled_computer = filled_in_by(COMPUTER_MARKER, board, board_size,
+                                   other_squares)
+    filled_player = filled_in_by(PLAYER_MARKER, board, board_size,
+                                 other_squares)
     line.include?(square) &&
       (filled_computer >= (board_size - 2) && filled_player == 0)
   end
@@ -306,4 +298,68 @@ def output_computer_thinking
   end
 end
 
+def winning_lines(board_size)
+  winning_lines = []
+  winning_lines += winning_horizontal_lines(board_size)
+  winning_lines += winning_vertical_lines(board_size)
+  winning_lines << winning_forward_diagonal(board_size)
+  winning_lines << winning_backward_diagonal(board_size)
+  winning_lines
+end
+
+def winning_horizontal_lines(board_size)
+  winning_lines = []
+  line_count = 0
+
+  until line_count >= board_size
+    line = []
+    starting_element = (line_count * board_size) + 1
+    board_size.times { |ind| line.push(starting_element + ind) }
+    winning_lines.push(line)
+
+    line_count += 1
+  end
+
+  winning_lines
+end
+
+def winning_vertical_lines(board_size)
+  winning_lines = []
+  line_count = 1
+
+  until line_count > board_size
+    line = []
+    starting_element = line_count
+    board_size.times { |ind| line.push(starting_element + (ind * board_size)) }
+    winning_lines.push(line)
+
+    line_count += 1
+  end
+
+  winning_lines
+end
+
+def winning_forward_diagonal(board_size)
+  forward_diagonal = []
+  count = 1
+
+  while count <= (board_size * board_size)
+    forward_diagonal.push(count)
+    count += (board_size + 1)
+  end
+
+  forward_diagonal
+end
+
+def winning_backward_diagonal(board_size)
+  backward_diagonal = []
+  count = board_size
+
+  while count < (board_size * board_size)
+    backward_diagonal.push(count)
+    count += (board_size - 1)
+  end
+
+  backward_diagonal
+end
 main
