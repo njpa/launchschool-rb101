@@ -121,23 +121,27 @@ def computer_places_piece!(board, board_size, winning_lines)
 end
 
 def best_move(empty_squares, board, board_size, winning_lines)
-  possible_wins = possible_wins(empty_squares, board, board_size, winning_lines)
-  possible_blocks = possible_blocks(empty_squares, board, board_size,
-                                    winning_lines)
-  win_starts = empty_squares.select do |square|
-    can_start_win?(square, board, board_size, winning_lines)
-  end
-  mid = mid_board(board_size)
+  possible = possibilities(empty_squares, board, board_size, winning_lines)
 
-  if !possible_wins.empty?
-    possible_wins.sample
-  elsif !possible_blocks.empty?
-    possible_blocks.sample
-  elsif !win_starts.empty?
-    win_starts.include?(mid) ? mid : win_starts.sample
+  if possible[:wins].any?
+    possible[:wins].sample
+  elsif possible[:blocks].any?
+    possible[:blocks].sample
+  elsif possible[:runs].include?(possible[:mid])
+    possible[:mid]
+  elsif possible[:runs].any?
+    possible[:runs].sample # sort them by highest number of `0`
   else
-    empty_squares.include?(mid) ? mid : empty_squares.sample
+    empty_squares.include?(possible[:mid]) ? possible[:mid] : possible[:random]
   end
+end
+
+def possibilities(empty_squares, board, board_size, winning_lines)
+  { wins: possible_wins(empty_squares, board, board_size, winning_lines),
+    blocks: possible_blocks(empty_squares, board, board_size, winning_lines),
+    runs: possible_runs(empty_squares, board, board_size, winning_lines),
+    mid: mid_board(board_size),
+    random: empty_squares.sample }
 end
 
 def mid_board(board_size)
@@ -167,17 +171,19 @@ def possible_blocks(empty_squares, board, board_size, winning_lines)
   end
 end
 
-def can_start_win?(square, board, board_size, winning_lines)
-  wins = winning_lines.select do |line|
-    other_squares = line - [square]
-    filled_computer = filled_in_by(COMPUTER_MARKER, board, board_size,
+def possible_runs(empty_squares, board, board_size, winning_lines)
+  empty_squares.reject do |square|
+    wins = winning_lines.select do |line|
+      other_squares = line - [square]
+      filled_computer = filled_in_by(COMPUTER_MARKER, board, board_size,
+                                     other_squares)
+      filled_player = filled_in_by(PLAYER_MARKER, board, board_size,
                                    other_squares)
-    filled_player = filled_in_by(PLAYER_MARKER, board, board_size,
-                                 other_squares)
-    line.include?(square) &&
-      (filled_computer >= 1 && filled_player == 0)
+      line.include?(square) &&
+        (filled_computer >= 1 && filled_player == 0)
+    end
+    wins.empty?
   end
-  !wins.empty?
 end
 
 def filled_in_by(player_marker, board, board_size, squares_to_test)
@@ -275,12 +281,10 @@ end
 def board_line_vertical_numbered(size, row)
   line = ""
   size.times do |index|
-    number = ((row * size) + (index + 1)).to_s.rjust(2, ' ')
-    line << "#{number}   |"
+    number = ((row * size) + (index + 1)).to_s.rjust(3, ' ')
+    line << "#{number}  |"
   end
   line.chop.cyan << "\n"
-
-  #("#{row * size}     |" * size).chop << "\n"
 end
 
 def board_line_vertical(size)
