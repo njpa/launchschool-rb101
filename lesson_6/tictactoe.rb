@@ -8,40 +8,14 @@ PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
 GAMES_FOR_WIN = 5
 
-=begin
-done:
-- `possible_wins` takes `board_size` as argument
-- `possible_wins` uses a `count` with `board_size` to determine possible win
-- `can_block?` takes `board_size` as argument
-- `can_block?` uses a `count` with `board_size` to determine possible block
-- WINNING_LINES needs to be updated to WINNING_LINES_3X3, and updated throughout
-- WINNING_LINES_5X5 needs to be created
-- add `board_size` to `state`
-
-pending:
-- write `prompt_board_size`
-- `game_on?` calls `prompt_board_size`
-- `board` is empty `{}` in `state`
-- update `clear_board` to `create_board` and add `size` argument
-- write `board_line_horizontal`, takes `size` as argument
-- write `board_line_vertical`, takes `size` as argument
-- `board_table` needs to delegate squares out to `board_line_horizontal`
-- `board_table` needs to delegate squares out to `board_line_vertical`
-- `best_move` defaults to `5` if board_size is `3`,
-  defaults to `13` if `board_size` is `5`
-=end
-
 def main
   state = {
-    score: { player: 0, computer: 0 },
-    board: { 1 => INITIAL_MARKER, 2 => INITIAL_MARKER,
-             3 => INITIAL_MARKER, 4 => INITIAL_MARKER,
-             5 => INITIAL_MARKER, 6 => INITIAL_MARKER,
-             7 => INITIAL_MARKER, 8 => INITIAL_MARKER },
-    winning_lines: winning_lines(3),
+    board: {},
     board_size: 3,
+    score: { player: 0, computer: 0 },
     last_winner: :player,
-    current_player: :player
+    current_player: :player,
+    winning_lines: winning_lines(3)
   }
 
   loop do
@@ -52,6 +26,9 @@ def main
 end
 
 def game_on?(state)
+  state[:board_size] = prompt_board_size
+  state[:winning_lines] = winning_lines(state[:board_size])
+
   winner = play_game(state)
 
   case winner
@@ -69,7 +46,7 @@ def game_on?(state)
 end
 
 def play_game(state)
-  clear_board!(state[:board])
+  create_board!(state)
 
   winner = nil
 
@@ -150,16 +127,21 @@ def best_move(empty_squares, board, board_size, winning_lines)
   win_starts = empty_squares.select do |square|
     can_start_win?(square, board, board_size, winning_lines)
   end
+  mid = mid_board(board_size)
 
   if !possible_wins.empty?
     possible_wins.sample
   elsif !possible_blocks.empty?
     possible_blocks.sample
   elsif !win_starts.empty?
-    win_starts.include?(5) ? 5 : win_starts.sample
+    win_starts.include?(mid) ? mid : win_starts.sample
   else
-    empty_squares.include?(5) ? 5 : empty_squares.sample
+    empty_squares.include?(mid) ? mid : empty_squares.sample
   end
+end
+
+def mid_board(board_size)
+  ((board_size * board_size) / 2) + 1
 end
 
 def possible_wins(empty_squares, board, board_size, winning_lines)
@@ -193,7 +175,7 @@ def can_start_win?(square, board, board_size, winning_lines)
     filled_player = filled_in_by(PLAYER_MARKER, board, board_size,
                                  other_squares)
     line.include?(square) &&
-      (filled_computer >= (board_size - 2) && filled_player == 0)
+      (filled_computer >= 1 && filled_player == 0)
   end
   !wins.empty?
 end
@@ -224,15 +206,17 @@ def empty_squares(board)
   board.keys.select { |pos| board[pos] == INITIAL_MARKER }
 end
 
-def clear_board!(board)
-  (1..9).each { |key| board[key] = INITIAL_MARKER }
+def create_board!(state)
+  state[:board] = Hash.new
+  squares = state[:board_size] * state[:board_size]
+  (1..squares).each { |key| state[:board][key] = INITIAL_MARKER }
 end
 
 def display(state)
   system 'clear'
   puts score_table(state[:score], state[:current_player]).yellow
   puts ''
-  puts board_table(state[:board])
+  puts board_table(state[:board], state[:board_size])
   puts ''
 end
 
@@ -250,18 +234,57 @@ def prompt_again
   again
 end
 
-def board_table(brd)
-  "     |     |     \n" \
-  "  #{brd[1]}  |  #{brd[2]}  |  #{brd[3]}\n" \
-  "     |     |     \n" \
-  "-----+-----+-----\n" \
-  "     |     |     \n" \
-  "  #{brd[4]}  |  #{brd[5]}  |  #{brd[6]}\n" \
-  "     |     |     \n" \
-  "-----+-----+-----\n" \
-  "     |     |     \n" \
-  "  #{brd[7]}  |  #{brd[8]}  |  #{brd[9]}\n" \
-  "     |     |     \n"
+def prompt_board_size
+  puts "What board size would you like to play in? (3, 5, 7, 9, etc): "
+  size = ''
+
+  loop do
+    size = gets.chomp.to_i
+    break if size.odd? && size >= 3
+
+    puts "Please enter an odd number greater than or equal to 3: "
+  end
+
+  size
+end
+
+def board_table(brd, size)
+  board = ""
+  size.times do |index|
+    board += board_line_vertical_numbered(size, index)
+    board += board_line_markers(brd, size, index)
+    board += board_line_vertical(size)
+    board += board_line_horizontal(size) if index < (size - 1)
+  end
+  board
+end
+
+def board_line_markers(board, size, row)
+  line = ""
+  size.times do |index|
+    marker = board[(row * size) + (index + 1)].red
+    line << "  #{marker}  |"
+  end
+  line.chop << "\n"
+end
+
+def board_line_horizontal(size)
+  ("-----+" * size).chop << "\n"
+end
+
+def board_line_vertical_numbered(size, row)
+  line = ""
+  size.times do |index|
+    number = ((row * size) + (index + 1)).to_s.rjust(2, ' ')
+    line << "#{number}   |"
+  end
+  line.chop.cyan << "\n"
+
+  #("#{row * size}     |" * size).chop << "\n"
+end
+
+def board_line_vertical(size)
+  ("     |" * size).chop << "\n"
 end
 
 def score_table(scr, current_player)
