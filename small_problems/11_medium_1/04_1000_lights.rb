@@ -108,3 +108,73 @@ end
 
 p switch_lights(5) == [1, 4]
 p switch_lights(10) == [1, 4, 9]
+
+# alternative
+# We can use a hash to store the lights.  The key can represent the
+# position, and the value will represent the state of the light ('on' / 'off')
+# Tips:
+# 1. break out the initialization of the hash to a method
+# 2. assign the logic of returning the array with the positions of lights
+# that are switched 'on' to a method
+# 3. use `Hash#select` and `Hash#keys` to get the positions of 'on' lights
+# 4. there's no real need to check for the current iteration being greater
+#     than or equal to the position, since we are going to apply the light
+#     switching to multiples of the position (this means that, by definition,
+#     only numbers greater than the position will be consideded).
+# 5. the guard clause for the first iteration is also not necessary since
+#    all numbers are multiples of `1`.
+# 6. there's no real need to break out the logic to switch a single light
+#    to a method.
+
+def initialize_lights(number)
+  lights = Hash.new
+  1.upto(number) { |pos| lights[pos] = 'off' }
+  lights
+end
+
+def on_positions(lights)
+  lights.select { |_pos, state| state == 'on' }.keys
+end
+
+def switch_lights_from(lights, position)
+  lights.each do |pos, _|
+    if pos % position == 0
+      lights[pos] = lights[pos] == 'on' ? 'off' : 'on'
+    end
+  end
+end
+
+def switch_lights_alt(number)
+  lights = initialize_lights(number)
+  1.upto(number) do |position|
+    switch_lights_from(lights, position)
+    p lights
+  end
+  on_positions(lights)
+end
+
+puts '-- Alternative'
+#p switch_lights_alt(5) == [1, 4]
+#p switch_lights_alt(10) == [1, 4, 9]
+p switch_lights_alt(16)# == [1, 4, 9, 16]
+
+
+def lights(n)
+  switches = {}
+  1.upto(n) do |i|
+    counter = i
+    step = i
+    loop do
+      break if counter > n
+      switches[counter] = case switches[counter]
+                          when 'on' then 'off'
+                          else 'on'
+                          end
+      counter += step
+    end
+  end
+  switches.select { |_, v| v == 'on' }.keys
+end
+
+puts '---'
+p lights(16)
