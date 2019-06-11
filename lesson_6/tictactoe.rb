@@ -130,7 +130,7 @@ def best_move(empty_squares, board, board_size, winning_lines)
   elsif possible[:runs].include?(possible[:mid])
     possible[:mid]
   elsif possible[:runs].any?
-    possible[:runs].sample # sort them by highest number of `0`
+    possible[:runs].sample
   else
     empty_squares.include?(possible[:mid]) ? possible[:mid] : possible[:random]
   end
@@ -316,7 +316,7 @@ end
 
 def output_computer_thinking
   print "I'm thinking".cyan
-  4.times do
+  3.times do
     sleep 0.5
     print ".".cyan
   end
