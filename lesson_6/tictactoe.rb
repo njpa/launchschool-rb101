@@ -18,6 +18,10 @@ def main
     winning_lines: winning_lines(3)
   }
 
+  system 'clear'
+  puts "Welcome to Tic Tac Toe, first one to win #{GAMES_FOR_WIN} " \
+       "game(s) wins the tournament!"
+
   loop do
     break unless game_on?(state)
   end
