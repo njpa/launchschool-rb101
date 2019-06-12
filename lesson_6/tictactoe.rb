@@ -5,7 +5,7 @@ require 'colorize'
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
-GAMES_FOR_WIN = 5
+ROUNDS_FOR_WIN = 5
 
 def main
   state = {
@@ -17,38 +17,21 @@ def main
     winning_lines: winning_lines(3)
   }
 
-  system 'clear'
-  puts "Welcome to Tic Tac Toe, first one to win #{GAMES_FOR_WIN} " \
-       "game(s) wins the tournament!"
-
   loop do
-    break unless game_on?(state)
-  end
+    initialize_round(state)
+    winner = play_round(state)
+    output_winner_message(winner)
 
-  puts "Thanks for playing!"
+    break if enough_rounds_won?(state[:score]) || !prompt_play_again?
+  end
 end
 
-def game_on?(state)
+def initialize_round(state)
   state[:board_size] = prompt_board_size
   state[:winning_lines] = winning_lines(state[:board_size])
-
-  winner = play_game(state)
-
-  case winner
-  when :player   then puts "Nice!"
-  when :computer then puts "Good try! Better luck next time."
-  else                puts "Looks like it's a tie!"
-  end
-
-  if state[:score][:player] >= GAMES_FOR_WIN ||
-     state[:score][:computer] >= GAMES_FOR_WIN
-    false
-  else
-    prompt_again != 'n'
-  end
 end
 
-def play_game(state)
+def play_round(state)
   create_board!(state)
 
   winner = nil
@@ -62,6 +45,10 @@ def play_game(state)
   end
 
   winner
+end
+
+def enough_rounds_won?(score)
+  score[:player] >= ROUNDS_FOR_WIN || score[:computer] >= ROUNDS_FOR_WIN
 end
 
 def play_turn!(state)
@@ -229,7 +216,7 @@ def display(state)
   puts ''
 end
 
-def prompt_again
+def prompt_play_again?
   puts "Do you want to play again (y/n)?: "
   again = ''
 
@@ -240,7 +227,7 @@ def prompt_again
     puts "Please enter 'y' or 'n': "
   end
 
-  again.downcase
+  again.downcase == 'y'
 end
 
 def prompt_board_size
@@ -321,12 +308,30 @@ def valid_int(str)
   str == str.to_i.to_s
 end
 
+def output_introduction
+  system 'clear'
+  puts "Welcome to Tic Tac Toe, the first one to win #{ROUNDS_FOR_WIN} " \
+       "round(s) wins the tournament!"
+end
+
 def output_computer_thinking
   print "I'm thinking".cyan
   3.times do
     sleep 0.5
     print ".".cyan
   end
+end
+
+def output_winner_message(winner)
+  case winner
+  when :player   then puts "Nice!"
+  when :computer then puts "Good try! Better luck next time."
+  else                puts "Looks like it's a tie!"
+  end
+end
+
+def output_goodbye
+  puts "Thanks for playing tic tac toe with me!"
 end
 
 def winning_lines(board_size)
@@ -394,4 +399,6 @@ def winning_backward_diagonal(board_size)
   backward_diagonal
 end
 
+output_introduction
 main
+output_goodbye
