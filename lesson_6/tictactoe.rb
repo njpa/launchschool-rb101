@@ -232,12 +232,12 @@ def prompt_again
 
   loop do
     again = gets.chomp
-    break if %w(y n).include? again
+    break if %w(Y N y n).include? again
 
     puts "Please enter 'y' or 'n': "
   end
 
-  again
+  again.downcase
 end
 
 def prompt_board_size
