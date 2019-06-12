@@ -1,6 +1,5 @@
 # tictactoe.rb
 
-require 'pry'
 require 'colorize'
 
 INITIAL_MARKER = ' '
