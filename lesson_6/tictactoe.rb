@@ -104,14 +104,14 @@ def player_places_piece!(board)
 
   loop do
     puts "Choose a square (#{joinor(empty_squares(board))}): ".green
-    choice = gets.chomp.to_i
+    choice = gets.chomp
 
-    break if empty_squares(board).include? choice
+    break if valid_int(choice) && empty_squares(board).include?(choice.to_i)
 
     puts "Please select a valid square!".red
   end
 
-  board[choice] = PLAYER_MARKER
+  board[choice.to_i] = PLAYER_MARKER
 end
 
 def computer_places_piece!(board, board_size, winning_lines)
@@ -312,6 +312,10 @@ def joinor(elements, separator = ', ', conj = 'or')
     init = elements[0...(elements.size - 1)].join(separator)
     "#{init}#{separator}#{conj} #{elements.last}"
   end
+end
+
+def valid_int(str)
+  str == str.to_i.to_s
 end
 
 def output_computer_thinking
