@@ -213,7 +213,8 @@ def create_board!(state)
 end
 
 def display(state)
-  system 'clear'
+  clear_output_screen
+
   puts score_table(state[:score], state[:current_player]).yellow
   puts ''
   puts board_table(state[:board], state[:board_size])
@@ -313,7 +314,8 @@ def valid_int(str)
 end
 
 def output_introduction
-  system 'clear'
+  clear_output_screen
+
   puts "Welcome to Tic Tac Toe, the first one to win #{ROUNDS_FOR_WIN} " \
        "round(s) wins the tournament!"
 end
@@ -336,6 +338,10 @@ end
 
 def output_goodbye
   puts "Thanks for playing tic tac toe with me!"
+end
+
+def clear_output_screen
+  system('clear') || system('cls')
 end
 
 def winning_lines(board_size)
