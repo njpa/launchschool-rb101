@@ -106,23 +106,27 @@ end
 
 def computer_places_piece!(board, board_size, winning_lines)
   empty_squares = empty_squares(board)
-  best_square = best_move(empty_squares, board, board_size, winning_lines)
+  possible = possibilities(empty_squares, board, board_size, winning_lines)
+  best_square = best_move(possible, empty_squares)
   board[best_square] = COMPUTER_MARKER
 end
 
-def best_move(empty_squares, board, board_size, winning_lines)
-  possible = possibilities(empty_squares, board, board_size, winning_lines)
+def best_move(possible, empty_squares)
+  wins = possible[:wins]
+  blocks = possible[:blocks]
+  runs = possible[:runs]
+  mid = possible[:mid]
 
-  if possible[:wins].any?
-    possible[:wins].sample
-  elsif possible[:blocks].any?
-    possible[:blocks].sample
-  elsif possible[:runs].include?(possible[:mid])
-    possible[:mid]
-  elsif possible[:runs].any?
-    possible[:runs].sample
+  if wins.any?
+    wins.sample
+  elsif blocks.any?
+    blocks.sample
+  elsif runs.include?([:mid])
+    mid
+  elsif runs.any?
+    runs.sample
   else
-    empty_squares.include?(possible[:mid]) ? possible[:mid] : possible[:random]
+    empty_squares.include?(mid) ? mid : empty_squares.sample
   end
 end
 
@@ -400,5 +404,7 @@ def winning_backward_diagonal(board_size)
 end
 
 output_introduction
+
 main
+
 output_goodbye
