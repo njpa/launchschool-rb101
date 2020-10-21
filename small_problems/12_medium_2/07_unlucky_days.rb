@@ -23,11 +23,8 @@ ALGO
 require 'date'
 
 def friday_13th(year)
-  days_13th(year).count { |day| day.friday? }
-end
-
-def days_13th(year)
-	(1..12).each_with_object([]) { |month, days| days << Date.new(year, month, 13) }
+	days = (1..12).map { |month| Date.new(year, month, 13) }
+  days.count { |day| day.friday? }
 end
 
 p friday_13th(2015) == 3
