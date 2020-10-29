@@ -33,34 +33,40 @@ def display_scoreboard(score)
   puts
 end
 
-def display_board_lines
+def display_board(board)
+  display_row([board[1], board[2], board[3]])
+  display_board_crossline
+  display_row([board[4], board[5], board[6]])
+  display_board_crossline
+  display_row([board[7], board[8], board[9]])
+end
+
+def display_row(row)
+  puts "     |     |     ".light_black
+  puts "  " + [row[0], row[1], row[2]].join("  |  ".light_black)
   puts "     |     |     ".light_black
 end
 
-def display_board(board, score)
+def display_board_crossline
+  puts "-----+-----+-----".light_black
+end
+
+def display(board, score)
   system("clear") || system("cls")
+
   display_banner
   display_scoreboard(score)
-  display_board_lines
-  puts "  " + [board[1], board[2], board[3]].join("  |  ".light_black)
-#  puts "  #{board[1]}  " + "|".light_black +
-#       "  #{board[2]}  " + "|".light_black + "  #{board[3]} "
-  display_board_lines
-  puts "-----+-----+-----".light_black
-  puts "     |     |  ".light_black
-  puts "  #{board[4]}  " + "|".light_black +
-       "  #{board[5]}  " + "|".light_black + "  #{board[6]} "
-  puts "     |     |  ".light_black
-  puts "-----+-----+-----".light_black
-  puts "     |     |  ".light_black
-  puts "  #{board[7]}  " + "|".light_black +
-       "  #{board[8]}  " + "|".light_black + "  #{board[9]} "
-  puts "     |     |  ".light_black
+  display_board(board)
+
   puts
 end
 
 def empty_squares(board)
   board.select { |_square, value| value == MARKING_EMPTY }.keys
+end
+
+def random_square(board)
+  empty_squares(board).sample
 end
 
 def make_move!(board, square, player_marker)
@@ -106,38 +112,39 @@ def risky_lines(board, marking)
   lines
 end
 
-def assess_computer_options(board)
-  opportunities = risky_lines(board, MARKING_COMPUTER)
-  threats = risky_lines(board, MARKING_PLAYER)
-
+def assess_computer_options(board, opportunities, threats, center_empty)
   if opportunities.size > 0
-    square = opportunities[0].select do |sq|
-      board[sq] == MARKING_EMPTY
-    end
-    square = square.first
+    square = opportunities[0].select { |sq| board[sq] == MARKING_EMPTY }.first
     puts "Opportunities(s) at #{opportunities}, beating you at #{square}!"
   elsif threats.size > 0
-    square = threats[0].select do |sq|
-      board[sq] == MARKING_EMPTY
-    end
-    square = square.first
+    square = threats[0].select { |sq| board[sq] == MARKING_EMPTY }.first
     puts "Threat(s) at #{threats}, blocking you at #{square}!"
-  elsif board[5] == MARKING_EMPTY
+  elsif center_empty
     square = 5
     puts "Empty center, I'll take that thank you very much!"
   else
-    square = empty_squares(board).sample
+    square = random_square(board)
     puts "No opportunities or threats... guess I'll move to #{square}"
   end
 
-  sleep(4)
+  square
+end
+
+def process_computer_move(board)
+  opportunities = risky_lines(board, MARKING_COMPUTER)
+  threats = risky_lines(board, MARKING_PLAYER)
+  center_empty = board[5] == MARKING_EMPTY
+
+  square = assess_computer_options(board, opportunities, threats, center_empty)
+
+  sleep(3)
   make_move!(board, square, MARKING_COMPUTER)
 end
 
-def process_player_move(board, score)
+def player_turn(board, score)
   square = prompt_square(empty_squares(board))
   make_move!(board, square, MARKING_PLAYER)
-  display_board(board, score)
+  display(board, score)
 
   if win?(board, MARKING_PLAYER)
     puts "Congratulations, that's a win for you!"
@@ -153,9 +160,9 @@ def process_player_move(board, score)
   end
 end
 
-def process_computer_move(board, score)
-  assess_computer_options(board)
-  display_board(board, score)
+def computer_turn(board, score)
+  process_computer_move(board)
+  display(board, score)
 
   if win?(board, MARKING_COMPUTER)
     puts "That's a win for me! Better luck next time."
@@ -172,21 +179,15 @@ def process_computer_move(board, score)
 end
 
 def play_game(board, score)
-  display_board(board, score)
+  display(board, score)
 
   loop do
     if score[:last_winner] == :player
-      result_first_move = process_player_move(board, score)
-      break unless result_first_move == :nothing
-
-      result = process_computer_move(board, score)
-      break unless result == :nothing
+      break unless player_turn(board, score) == :nothing
+      break unless computer_turn(board, score) == :nothing
     else
-      result = process_computer_move(board, score)
-      break unless result == :nothing
-
-      result = process_player_move(board, score)
-      break unless result == :nothing
+      break unless computer_turn(board, score) == :nothing
+      break unless player_turn(board, score) == :nothing
     end
   end
 end
@@ -199,12 +200,10 @@ def prompt_game
     play_game(board, score)
 
     if score[:wins_player] == GAMES_PER_MATCH
-      puts "Congratulations, you won the set at " \
-           " #{score[:wins_player]}/#{score[:wins_computer]}!"
+      puts "Congratulations, you won the game!"
       break
     elsif score[:wins_computer] == GAMES_PER_MATCH
-      puts "Sorry, you lost the set at " \
-           "#{score[:wins_player]}/#{score[:wins_computer]}"
+      puts "Sorry, you lost the game!"
       break
     else
       puts "I'm preparing a new board..."
