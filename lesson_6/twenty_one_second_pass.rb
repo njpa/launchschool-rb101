@@ -67,13 +67,13 @@ def display_dealer(cards, show_hidden_card)
   end
 end
 
-def display(dealers_cards, players_cards, show_dealer_card=false)
+def display(state, show_card=false)
   system("clear") || system("cls")
   display_header
   puts
-  display_player(players_cards)
+  display_player(state[:players_cards])
   puts
-  display_dealer(dealers_cards, show_dealer_card)
+  display_dealer(state[:dealers_cards], show_card)
   puts
   puts "________________________".light_black
   puts
@@ -91,6 +91,27 @@ end
 def output_status(message)
   puts message.light_black
   sleep(2)
+end
+
+def bust?(hand)
+  total(hand) > 21
+end
+
+def number_aces(cards)
+  cards.select { |card| card[:face_value] == "Ace" }.size
+end
+
+def another_game?
+  answer = ""
+
+  loop do
+    puts "Would you like to play another game? ('y'/'n')"
+    answer = gets.chomp.downcase
+    break if ["n", "y"].include?(answer)
+    puts "Please enter 'y' or 'n':"
+  end
+
+  answer == "y"
 end
 
 def hit?
@@ -115,60 +136,49 @@ def total(hand)
   sum
 end
 
-def bust?(hand)
-  total(hand) > 21
-end
-
-def number_aces(cards)
-  cards.select { |card| card[:face_value] == "Ace" }.size
-end
-
-def player_stays?(deck, dealers_cards, players_cards)
+def player_stays?(state)
   loop do
-    return false if bust?(players_cards)
+    return false if bust?(state[:players_cards])
 
     if hit?
-      deal!(deck, players_cards)
+      deal!(state[:deck], state[:players_cards])
     else
       return true
     end
 
-    display(dealers_cards, players_cards)
+    display(state)
   end
 end
 
-def dealer_turn(deck, dealers_cards, players_cards)
-  result = :stay
+def dealer_stays?(state)
   loop do
-    if total(dealers_cards) < 17
+    if total(state[:dealers_cards]) < 17
       output_status("Dealer asks for hit...")
-      deal!(deck, dealers_cards)
+      deal!(state[:deck], state[:dealers_cards])
     else
-      result = :bust if bust?(dealers_cards)
-      output_status("Dealer stays...") unless bust?(dealers_cards)
-      break
+      return false if bust?(state[:dealers_cards])
+
+      output_status("Dealer stays...")
+      return true
     end
 
-    display(dealers_cards, players_cards, true)
+    display(state, true)
   end
-  result
 end
 
-def turns(deck, players_cards, dealers_cards, dealer_total, player_total)
-  display(dealers_cards, players_cards)
+def turns(state)
+  display(state)
 
-  if player_stays?(deck, dealers_cards, players_cards)
-    display(dealers_cards, players_cards, true)
+  if player_stays?(state)
+    display(state, true)
     output_status("Player stays...")
-    display(dealers_cards, players_cards, true)
+    dealer_stays = dealer_stays?(state)
+    display(state, true)
 
-    dealer_result = dealer_turn(deck, dealers_cards, players_cards)
-    display(dealers_cards, players_cards, true)
-
-    if dealer_result == :bust
-      puts "DEALER BUSTS!".green
+    if dealer_stays
+      output_winner(total(state[:dealers_cards]), total(state[:players_cards]))
     else
-      output_winner(total(dealers_cards), total(players_cards))
+      puts "DEALER BUSTS!".green
     end
   else
     puts "PLAYER BUSTS!".green
@@ -176,27 +186,14 @@ def turns(deck, players_cards, dealers_cards, dealer_total, player_total)
 end
 
 def play_game
-  deck = initialize_deck
-  players_cards = []
-  dealers_cards = []
-  dealer_total = 0
-  player_total = 0
-  2.times { deal!(deck, players_cards) }
-  2.times { deal!(deck, dealers_cards) }
-  turns(deck, players_cards, dealers_cards, dealer_total, player_total)
-end
-
-def another_game?
-  answer = ""
-
-  loop do
-    puts "Would you like to play another game? ('y'/'n')"
-    answer = gets.chomp.downcase
-    break if ["n", "y"].include?(answer)
-    puts "Please enter 'y' or 'n':"
-  end
-
-  answer == "y"
+  game_state = { deck: initialize_deck,
+                 players_cards: [],
+                 dealers_cards: [],
+                 dealer_total: 0,
+                 player_total: 0 }
+  2.times { deal!(game_state[:deck], game_state[:players_cards]) }
+  2.times { deal!(game_state[:deck], game_state[:dealers_cards]) }
+  turns(game_state)
 end
 
 def main
