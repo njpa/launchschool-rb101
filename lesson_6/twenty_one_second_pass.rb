@@ -1,8 +1,8 @@
-require 'pry-byebug'
 require 'colorize'
 
-FACES = %w(clubs diamonds hearts spades)
+ROUNDS_PER_GAME = 5
 FACE_VALUES = %w(2 3 4 5 6 7 8 9 10 Jack Queen King Ace)
+FACES = %w(clubs diamonds hearts spades)
 
 def initialize_deck
   deck = []
@@ -16,8 +16,9 @@ def initialize_deck
   deck
 end
 
-def deal!(deck, recipient)
+def deal_card!(deck, recipient)
   return nil if deck.empty?
+
   random_card = deck.sample
   random_card_index = deck.index(random_card)
   deck.delete_at(random_card_index)
@@ -30,88 +31,87 @@ def display_header
   puts "| __\\ \\ /\\ / / _ \\ '_ \\| __| | | |_____ / _ \\| '_ \\ / _ \\ ".blue
   puts "| |_ \\ V  V /  __/ | | | |_| |_| |_____| (_) | | | |  __/ ".blue
   puts " \\__| \\_/\\_/ \\___|_| |_|\\__|\\__, |      \\___/|_| |_|\\___| ".blue
-  puts "                            |___/                         ".blue
+  puts "                            |___/                         \n".blue
 end
 
-def display_player(cards)
-  puts "****************".cyan
-  puts "* PLAYER  (#{total(cards)}) *".cyan
-  puts "****************".cyan
-  puts
+def display_scoreboard(score_dealer, score_player)
+  puts "┌------------┐".green
+  puts "| SCOREBOARD |".green
+  puts "├------------┤".green
+  puts "| DEALER:  #{score_dealer} |".green
+  puts "| PLAYER:  #{score_player} |".green
+  puts "└------------┘\n".green
+end
+
+def display_player(cards, total)
+  puts "PLAYER".cyan
+  puts "======\n".cyan
+
   cards.each do |card|
     puts "#{card[:face_value]} of #{card[:face]}".red
   end
+
+  puts "total: #{total}\n".light_black
 end
 
-def display_dealer_header(cards, show_hidden_card)
-  if show_hidden_card
-    puts "***************".cyan
-    puts "* DEALER (#{total(cards)}) *".cyan
-    puts "***************".cyan
-  else
-    puts "**********".cyan
-    puts "* DEALER *".cyan
-    puts "**********".cyan
-  end
-end
-
-def display_dealer(cards, show_hidden_card)
-  display_dealer_header(cards, show_hidden_card)
-  puts
+def display_dealer(cards, total, show_hidden_card)
+  puts "DEALER".cyan
+  puts "======\n".cyan
   cards.each_with_index do |card, idx|
     if idx == 0 && !show_hidden_card
-      puts "[hidden card]".red
+      puts "[########]".red
     else
       puts "#{card[:face_value]} of #{card[:face]}".red
     end
   end
+
+  show_hidden_card ? (puts "total: #{total}\n".light_black) : puts
 end
 
 def display(state, show_card=false)
   system("clear") || system("cls")
   display_header
-  puts
-  display_player(state[:players_cards])
-  puts
-  display_dealer(state[:dealers_cards], show_card)
-  puts
+  display_scoreboard(state[:score_dealer], state[:score_player])
+  display_dealer(state[:dealers_cards], state[:dealer_total], show_card)
+  display_player(state[:players_cards], state[:player_total])
   puts "________________________".light_black
   puts
 end
 
-def output_winner(dealer_total, player_total)
+def output_round_winner(dealer_total, player_total)
   case dealer_total <=> player_total
-  when -1 then puts "PLAYER WINS!".green
-  when 1  then puts "DEALER WINS!".green
-  else         puts "IT'S A TIE!".green
+  when -1 then puts "Player wins round!".green
+  when 1  then puts "Dealer wins round!".green
+  else         puts "It's a tie!".green
   end
   puts
 end
 
+def output_game_winner(score_dealer, score_player)
+  case score_dealer <=> score_player
+  when 1  then puts "DEALER WINS GAME!".green
+  when -1 then puts "PLAYER WINS GAME!".green
+  end
+end
+
 def output_status(message)
-  puts message.light_black
-  sleep(2)
-end
-
-def bust?(hand)
-  total(hand) > 21
-end
-
-def number_aces(cards)
-  cards.select { |card| card[:face_value] == "Ace" }.size
+  print message.light_black
+  5.times do
+    print ".".light_black
+    sleep(0.8)
+  end
 end
 
 def another_game?
   answer = ""
-
   loop do
     puts "Would you like to play another game? ('y'/'n')"
     answer = gets.chomp.downcase
-    break if ["n", "y"].include?(answer)
+    break if %w(y n yes no).include?(answer)
     puts "Please enter 'y' or 'n':"
   end
 
-  answer == "y"
+  ["y", "yes"].include?(answer)
 end
 
 def hit?
@@ -120,9 +120,17 @@ def hit?
     puts "Would you like to (h)it or (s)tay?"
     answer = gets.chomp.downcase
 
-    break if ["h", "s"].include?(answer)
+    break if %w(hit h stay s).include?(answer)
   end
-  answer == "h"
+  ["h", "hit"].include?(answer)
+end
+
+def bust?(hand)
+  total(hand) > 21
+end
+
+def number_aces(cards)
+  cards.select { |card| card[:face_value] == "Ace" }.size
 end
 
 def total(hand)
@@ -139,26 +147,24 @@ end
 def player_stays?(state)
   loop do
     return false if bust?(state[:players_cards])
+    return true unless hit?
 
-    if hit?
-      deal!(state[:deck], state[:players_cards])
-    else
-      return true
-    end
-
+    deal_card!(state[:deck], state[:players_cards])
+    update_totals!(state)
     display(state)
   end
 end
 
 def dealer_stays?(state)
   loop do
-    if total(state[:dealers_cards]) < 17
-      output_status("Dealer asks for hit...")
-      deal!(state[:deck], state[:dealers_cards])
+    if state[:dealer_total] < 17
+      output_status("Dealer asks for hit")
+      deal_card!(state[:deck], state[:dealers_cards])
+      update_totals!(state)
     else
       return false if bust?(state[:dealers_cards])
 
-      output_status("Dealer stays...")
+      output_status("Dealer stays")
       return true
     end
 
@@ -166,41 +172,88 @@ def dealer_stays?(state)
   end
 end
 
-def turns(state)
+def process_dealer_bust!(state)
+  state[:score_player] += 1
+  display(state, true)
+  puts "Dealer busts! Player wins round!".green
+end
+
+def process_player_bust!(state)
+  state[:score_dealer] += 1
+  display(state, true)
+  puts "Player busts! Dealer wins round!".green
+end
+
+def process_round_win!(state)
+  case state[:dealer_total] <=> state[:player_total]
+  when -1 then state[:score_player] += 1
+  when 1  then state[:score_dealer] += 1
+  end
+
+  display(state, true)
+  output_round_winner(state[:dealer_total], state[:player_total])
+end
+
+def update_totals!(state)
+  state[:dealer_total] = total(state[:dealers_cards])
+  state[:player_total] = total(state[:players_cards])
+end
+
+def play_round(state)
   display(state)
 
   if player_stays?(state)
     display(state, true)
-    output_status("Player stays...")
+    output_status("Player stays")
     dealer_stays = dealer_stays?(state)
     display(state, true)
 
-    if dealer_stays
-      output_winner(total(state[:dealers_cards]), total(state[:players_cards]))
-    else
-      puts "DEALER BUSTS!".green
-    end
+    dealer_stays ? process_round_win!(state) : process_dealer_bust!(state)
   else
-    puts "PLAYER BUSTS!".green
+    process_player_bust!(state)
   end
 end
 
-def play_game
-  game_state = { deck: initialize_deck,
-                 players_cards: [],
-                 dealers_cards: [],
-                 dealer_total: 0,
-                 player_total: 0 }
-  2.times { deal!(game_state[:deck], game_state[:players_cards]) }
-  2.times { deal!(game_state[:deck], game_state[:dealers_cards]) }
-  turns(game_state)
+def setup_round(state)
+  state[:deck] = initialize_deck
+  state[:players_cards] = []
+  state[:dealers_cards] = []
+  state[:dealer_total] = 0
+  state[:player_total] = 0
+  2.times { deal_card!(state[:deck], state[:players_cards]) }
+  2.times { deal_card!(state[:deck], state[:dealers_cards]) }
+  update_totals!(state)
+
+  play_round(state)
+end
+
+def play_game(state)
+  loop do
+    setup_round(state)
+
+    break if state[:score_dealer] == ROUNDS_PER_GAME ||
+             state[:score_player] == ROUNDS_PER_GAME
+
+    output_status("Setting up next round")
+  end
 end
 
 def main
   loop do
-    play_game
+    game_state = { deck: [],
+                   players_cards: [],
+                   dealers_cards: [],
+                   dealer_total: 0,
+                   player_total: 0,
+                   score_dealer: 0,
+                   score_player: 0 }
+
+    play_game(game_state)
+
+    output_game_winner(game_state[:score_dealer], game_state[:score_player])
     break unless another_game?
   end
+
   puts "Thanks for playing Twenty-one!"
 end
 
