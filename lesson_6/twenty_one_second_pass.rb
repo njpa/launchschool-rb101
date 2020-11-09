@@ -43,29 +43,35 @@ def display_scoreboard(score_dealer, score_player)
   puts "└------------┘\n".green
 end
 
+def display_total(total)
+  puts "total: #{total}\n".light_black
+end
+
+def display_as_hidden
+  puts "[########]".red
+end
+
+def display_card(card)
+  puts "#{card[:face_value]} of #{card[:face]}".red
+end
+
 def display_player(cards, total)
   puts "PLAYER".cyan
   puts "======\n".cyan
 
-  cards.each do |card|
-    puts "#{card[:face_value]} of #{card[:face]}".red
-  end
-
-  puts "total: #{total}\n".light_black
+  cards.each { |card| display_card(card) }
+  display_total(total)
 end
 
 def display_dealer(cards, total, show_hidden_card)
   puts "DEALER".cyan
   puts "======\n".cyan
-  cards.each_with_index do |card, idx|
-    if idx == 0 && !show_hidden_card
-      puts "[########]".red
-    else
-      puts "#{card[:face_value]} of #{card[:face]}".red
-    end
-  end
 
-  show_hidden_card ? (puts "total: #{total}\n".light_black) : puts
+  first_card, *other_cards = cards
+  show_hidden_card ? display_card(first_card) : display_as_hidden
+  other_cards.each { |card| display_card(card) }
+
+  show_hidden_card ? display_total(total) : puts
 end
 
 def display(state, show_card=false)
@@ -98,7 +104,7 @@ def output_status(message)
   print message.light_black
   5.times do
     print ".".light_black
-    sleep(0.8)
+    sleep(0.5)
   end
 end
 
@@ -107,8 +113,10 @@ def another_game?
   loop do
     puts "Would you like to play another game? ('y'/'n')"
     answer = gets.chomp.downcase
+
     break if %w(y n yes no).include?(answer)
-    puts "Please enter 'y' or 'n':"
+
+    puts "Sorry, that's not a valid answer."
   end
 
   ["y", "yes"].include?(answer)
@@ -121,6 +129,8 @@ def hit?
     answer = gets.chomp.downcase
 
     break if %w(hit h stay s).include?(answer)
+
+    puts "Sorry, that's not a valid answer."
   end
   ["h", "hit"].include?(answer)
 end
